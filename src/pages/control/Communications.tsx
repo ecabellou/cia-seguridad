@@ -1,29 +1,46 @@
-
 import { useState, useEffect } from 'react';
-import { Send, Users, MessageSquare, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Send, Users, MessageSquare, CheckCircle, Clock, AlertTriangle, User } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-
-
-
 import { useMessages } from '../../lib/useMessages';
+import { supabase } from '../../lib/supabase';
 
 const ControlCommunications = () => {
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
     const [priority, setPriority] = useState<'normal' | 'high'>('normal');
-    const [target, setTarget] = useState<'guards' | 'admin'>('guards');
+    const [target, setTarget] = useState<'guards' | 'admin' | string>('guards');
+    const [guardsList, setGuardsList] = useState<{ id: string, name: string }[]>([]);
 
     const { sendMessage, messages } = useMessages();
     const [searchParams] = useSearchParams();
+
+    // Fetch All Active Guards for Individual selection
+    useEffect(() => {
+        const fetchGuards = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name')
+                .eq('role', 'guard')
+                .eq('status', 'active');
+
+            if (data) {
+                setGuardsList(data.map(g => ({
+                    id: g.id,
+                    name: `${g.first_name} ${g.last_name || ''}`
+                })));
+            }
+        };
+        fetchGuards();
+    }, []);
 
     // Auto-select target if replying
     useEffect(() => {
         const replyTo = searchParams.get('replyTo');
         if (replyTo === 'admin') setTarget('admin');
-        if (replyTo === 'guards') setTarget('guards');
+        if (replyTo && replyTo !== 'admin' && replyTo !== 'control') setTarget(replyTo);
     }, [searchParams]);
 
-    // Filter history to show only what we sent OR received
+    // Filter history
     const history = messages.filter(m => m.from === 'control' || m.to === 'control' || m.to === 'all');
 
     const handleSend = (e: React.FormEvent) => {
@@ -33,13 +50,17 @@ const ControlCommunications = () => {
             title,
             message,
             from: 'control',
-            to: target,
+            to: target as any,
             priority
         });
 
+        const targetName = target === 'guards' ? 'todos los guardias' :
+            target === 'admin' ? 'la administración' :
+                guardsList.find(g => g.id === target)?.name || 'el guardia';
+
         setTitle('');
         setMessage('');
-        alert(`Comunicado enviado a ${target === 'guards' ? 'los guardias' : 'la administración'}`);
+        alert(`Comunicado enviado a ${targetName}`);
     };
 
     return (
@@ -61,17 +82,41 @@ const ControlCommunications = () => {
                     <form onSubmit={handleSend} className="space-y-6">
 
                         {/* Recipient Selection */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className={`cursor-pointer border rounded-lg p-3 flex flex-col items-center gap-2 transition-all ${target === 'guards' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                                <Users size={24} className={target === 'guards' ? 'text-blue-500' : 'text-slate-400'} />
-                                <span className="font-bold text-sm">A Guardias</span>
-                                <input type="radio" name="target" className="hidden" onClick={() => setTarget('guards')} />
-                            </label>
-                            <label className={`cursor-pointer border rounded-lg p-3 flex flex-col items-center gap-2 transition-all ${target === 'admin' ? 'bg-purple-50 border-purple-500 text-purple-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                                <MessageSquare size={24} className={target === 'admin' ? 'text-purple-500' : 'text-slate-400'} />
-                                <span className="font-bold text-sm">A Administración</span>
-                                <input type="radio" name="target" className="hidden" onClick={() => setTarget('admin')} />
-                            </label>
+                        <div className="space-y-4">
+                            <label className="block text-sm font-medium text-slate-500">Destinatario de la Orden</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setTarget('guards')}
+                                    className={`p-3 border rounded-xl flex flex-col items-center gap-1 transition-all ${target === 'guards' ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-blue-400'}`}
+                                >
+                                    <Users size={20} />
+                                    <span className="font-bold text-xs">Todos los Guardias</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setTarget('admin')}
+                                    className={`p-3 border rounded-xl flex flex-col items-center gap-1 transition-all ${target === 'admin' ? 'bg-purple-600 border-purple-600 text-white shadow-md' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-purple-400'}`}
+                                >
+                                    <MessageSquare size={20} />
+                                    <span className="font-bold text-xs">Administración</span>
+                                </button>
+
+                                <div className={`p-3 border rounded-xl flex flex-col items-center gap-1 transition-all ${target !== 'guards' && target !== 'admin' ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-emerald-400'}`}>
+                                    <User size={20} />
+                                    <select
+                                        value={target !== 'guards' && target !== 'admin' ? target : ''}
+                                        onChange={(e) => setTarget(e.target.value)}
+                                        className="bg-transparent font-bold text-xs focus:outline-none w-full text-center"
+                                    >
+                                        <option value="" disabled className="text-slate-800">Seleccionar Guardia...</option>
+                                        {guardsList.map(g => (
+                                            <option key={g.id} value={g.id} className="text-slate-800">{g.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Priority Toggle */}
@@ -156,7 +201,7 @@ const ControlCommunications = () => {
                                         ) : alert.to === 'admin' ? (
                                             <><MessageSquare size={12} /> Para Admin</>
                                         ) : (
-                                            <><Users size={12} /> Para Todos</>
+                                            <><User size={12} /> Para: {guardsList.find(g => g.id === alert.to)?.name || alert.to}</>
                                         )}
                                     </span>
                                     <span className={`flex items-center gap-1 ${alert.read ? 'text-emerald-600' : 'text-slate-500'}`}>
@@ -167,8 +212,7 @@ const ControlCommunications = () => {
                             </div>
                         ))}
                     </div>
-                </div>
-            </div>
+                </div>            </div>
         </div>
     );
 };
