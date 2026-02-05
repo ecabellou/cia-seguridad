@@ -26,27 +26,34 @@ const Login = () => {
             if (error) throw error;
 
             if (user) {
-                // Fetch Role from Profiles - First try by ID
-                let { data: profile, error: profileError } = await supabase
+                // 1. Buscamos el perfil por EMAIL (es nuestro identificador maestro)
+                const { data: profileByEmail } = await supabase
                     .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
+                    .select('*')
+                    .eq('email', user.email)
+                    .order('created_at', { ascending: true }) // Priorizamos el más antiguo (el creado por el admin)
+                    .limit(1)
                     .single();
 
-                // If not found by ID (common if user was created manually in Auth), try by email
-                if (profileError || !profile) {
-                    const { data: profileByEmail } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('email', user.email)
-                        .single();
-                    profile = profileByEmail;
+                let finalRole = 'guard';
+
+                if (profileByEmail) {
+                    finalRole = profileByEmail.role;
+
+                    // 2. Si el ID del perfil no coincide con el ID de Auth, lo unificamos
+                    if (profileByEmail.id !== user.id) {
+                        try {
+                            // Actualizamos el ID para que coincida con el de Auth y borramos posibles duplicados basura
+                            await supabase.from('profiles').delete().eq('id', user.id); // Borramos el perfil "basura" si existe
+                            await supabase.from('profiles').update({ id: user.id }).eq('id', profileByEmail.id);
+                        } catch (e) {
+                            console.error("Error unificando perfiles:", e);
+                        }
+                    }
                 }
 
-                const role = profile?.role || 'guard';
-
-                if (role === 'admin') navigate('/admin/dashboard');
-                else if (role === 'control') navigate('/control/monitor');
+                if (finalRole === 'admin') navigate('/admin/dashboard');
+                else if (finalRole === 'control') navigate('/control/monitor');
                 else navigate('/guard/home');
             }
         } catch (error: any) {
