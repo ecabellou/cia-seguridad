@@ -82,14 +82,18 @@ const Monitor = () => {
 
     // Toast State
     const [toast, setToast] = useState<{ show: boolean, msg: Message | null }>({ show: false, msg: null });
-    const [lastSeenId, setLastSeenId] = useState<number>(() => {
-        const msgs = JSON.parse(localStorage.getItem('cia_security_communications') || '[]');
-        return msgs.length > 0 ? msgs[0].id : 0;
-    });
+    const [lastSeenId, setLastSeenId] = useState<number>(0);
 
     useEffect(() => {
         if (incomingMessages.length > 0) {
             const latest = incomingMessages[0];
+
+            // Set initial state without toast to avoid notification spam on load
+            if (lastSeenId === 0) {
+                setLastSeenId(latest.id);
+                return;
+            }
+
             if (latest.id > lastSeenId) {
                 setToast({ show: true, msg: latest });
                 setLastSeenId(latest.id);

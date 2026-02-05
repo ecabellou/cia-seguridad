@@ -2,6 +2,7 @@
 import { Users, Shield, MapPin, Clock, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useMessages, type Message } from '../../lib/useMessages';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const stats = [
     {
@@ -37,7 +38,6 @@ const stats = [
         bg: "bg-purple-500/10"
     },
 ];
-import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -46,18 +46,20 @@ const AdminDashboard = () => {
 
     // Toast State
     const [toast, setToast] = useState<{ show: boolean, msg: Message | null }>({ show: false, msg: null });
-    const [lastSeenId, setLastSeenId] = useState<number>(() => {
-        const msgs = JSON.parse(localStorage.getItem('cia_security_communications') || '[]');
-        return msgs.length > 0 ? msgs[0].id : 0;
-    });
+    const [lastSeenId, setLastSeenId] = useState<number>(0);
 
     useEffect(() => {
         if (incomingMessages.length > 0) {
             const latest = incomingMessages[0];
+
+            if (lastSeenId === 0) {
+                setLastSeenId(latest.id);
+                return;
+            }
+
             if (latest.id > lastSeenId) {
                 setToast({ show: true, msg: latest });
                 setLastSeenId(latest.id);
-                // Auto hide after 5 seconds
                 const timer = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 5000);
                 return () => clearTimeout(timer);
             }
@@ -191,9 +193,6 @@ const AdminDashboard = () => {
                     </table>
                 </div>
             </div>
-
-            {/* Incoming Messages from Control */}
-
         </div>
     );
 };

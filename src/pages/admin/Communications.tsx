@@ -15,18 +15,22 @@ const Communications = () => {
         .filter(m => m.from === 'admin' || m.to === 'admin' || m.to === 'all')
         .slice(0, 10);
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        sendMessage({
-            title,
-            message,
-            from: 'admin',
-            to: target,
-            priority: 'normal'
-        });
-        setTitle('');
-        setMessage('');
-        alert('Mensaje enviado exitosamente');
+        try {
+            await sendMessage({
+                title,
+                message,
+                from: 'admin',
+                to: target,
+                priority: 'normal'
+            });
+            setTitle('');
+            setMessage('');
+            alert('✅ Mensaje enviado exitosamente');
+        } catch (error) {
+            alert('❌ Error al enviar el mensaje');
+        }
     };
 
     return (
