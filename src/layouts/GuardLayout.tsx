@@ -27,6 +27,15 @@ const GuardLayout = () => {
     }, []);
 
     const handleLogout = async () => {
+        // 1. Eliminar la ubicación de la base de datos para que desaparezca del monitor
+        if (profile?.id) {
+            await supabase
+                .from('guard_locations')
+                .delete()
+                .eq('id', profile.id);
+        }
+
+        // 2. Cerrar sesión en Supabase
         await supabase.auth.signOut();
         navigate('/login');
     };
