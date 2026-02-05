@@ -13,7 +13,7 @@ const mockAlerts = [
 
 const Monitor = () => {
     const navigate = useNavigate();
-    const { messages } = useMessages();
+    const { messages, sendMessage } = useMessages();
     const { allLocations } = useLocationTracker();
 
     // Convertimos a array (ya vienen filtrados por el Hook useLocationTracker con la BD Real)
@@ -25,6 +25,60 @@ const Monitor = () => {
     });
 
     const incomingMessages = messages.filter(m => m.to === 'control' || m.to === 'all');
+
+    // Alertas de GPS perdido
+    const [alerts, setAlerts] = useState(mockAlerts);
+    const [lostSignalGuards, setLostSignalGuards] = useState<Set<string>>(new Set());
+
+    // Monitoreo de señal perdida
+    useEffect(() => {
+        const checkSignals = () => {
+            const now = Date.now();
+            const threshold = 20000; // 20 segundos sin señal se considera "Alerta"
+
+            guardsOnMap.forEach(guard => {
+                const timeSinceLastSeen = now - guard.lastSeen;
+
+                if (timeSinceLastSeen > threshold && !lostSignalGuards.has(guard.id)) {
+                    // DISPARAR ALERTA
+                    const alertMsg = `⚠️ ALERTA: Perdida de señal GPS - ${guard.name} (${guard.id})`;
+
+                    // 1. Agregar a la lista de alertas visuales
+                    const newAlert = {
+                        id: Date.now(),
+                        type: 'CRITICAL',
+                        msg: alertMsg,
+                        time: 'Justo ahora'
+                    };
+                    setAlerts(prev => [newAlert, ...prev]);
+
+                    // 2. Enviar mensaje formal al sistema de comunicaciones
+                    sendMessage({
+                        title: 'PÉRDIDA DE SEÑAL GPS',
+                        message: `El sistema detectó que el dispositivo de ${guard.name} dejó de reportar ubicación hace más de 20 segundos. Se requiere contacto preventivo.`,
+                        from: 'control',
+                        to: 'all',
+                        priority: 'high'
+                    });
+
+                    // 3. Registrar como "ya alertado" para no duplicar
+                    setLostSignalGuards(prev => new Set(prev).add(guard.id));
+                }
+
+                // Si la señal vuelve, lo quitamos de la lista de "perdidos"
+                if (timeSinceLastSeen < threshold && lostSignalGuards.has(guard.id)) {
+                    setLostSignalGuards(prev => {
+                        const next = new Set(prev);
+                        next.delete(guard.id);
+                        return next;
+                    });
+                }
+            });
+        };
+
+        const interval = setInterval(checkSignals, 5000);
+        return () => clearInterval(interval);
+    }, [guardsOnMap, lostSignalGuards, sendMessage]);
 
     // Toast State
     const [toast, setToast] = useState<{ show: boolean, msg: Message | null }>({ show: false, msg: null });
@@ -118,28 +172,31 @@ const Monitor = () => {
                         onBoundsChanged={({ center, zoom }) => setMapState({ center, zoom })}
                         metaWheelZoom={true}
                     >
-                        {guardsOnMap.map((guard) => (
-                            <Overlay
-                                key={guard.id}
-                                anchor={[guard.lat, guard.lng]}
-                                offset={[0, 0]}
-                            >
-                                <div className="relative group/marker">
-                                    {/* Name Tag */}
-                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity flex flex-col items-center z-50">
-                                        <span className="font-bold">{guard.name}</span>
-                                        <span className="text-[8px] text-slate-400">ID: {guard.id}</span>
-                                        <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45" />
-                                    </div>
+                        {guardsOnMap.map((guard) => {
+                            const isLost = (Date.now() - guard.lastSeen) > 20000;
+                            return (
+                                <Overlay
+                                    key={guard.id}
+                                    anchor={[guard.lat, guard.lng]}
+                                    offset={[0, 0]}
+                                >
+                                    <div className="relative group/marker">
+                                        {/* Name Tag */}
+                                        <div className={`absolute -top-12 left-1/2 -translate-x-1/2 ${isLost ? 'bg-red-600' : 'bg-slate-900'} text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity flex flex-col items-center z-50`}>
+                                            <span className="font-bold">{guard.name}</span>
+                                            <span className="text-[8px] text-slate-200">{isLost ? '¡SEÑAL PERDIDA!' : `ID: ${guard.id.slice(-6)}`}</span>
+                                            <div className={`absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 ${isLost ? 'bg-red-600' : 'bg-slate-900'} rotate-45`} />
+                                        </div>
 
-                                    {/* Indicator */}
-                                    <div className="w-10 h-10 bg-blue-500/20 rounded-full animate-ping absolute -translate-x-1/2 -translate-y-1/2" />
-                                    <div className="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                                        <span className="text-[8px] text-white font-bold">{guard.id.slice(-3)}</span>
+                                        {/* Indicator */}
+                                        <div className={`w-10 h-10 ${isLost ? 'bg-red-500/40' : 'bg-blue-500/20'} rounded-full animate-ping absolute -translate-x-1/2 -translate-y-1/2`} />
+                                        <div className={`w-5 h-5 ${isLost ? 'bg-red-600 animate-pulse' : 'bg-blue-600'} rounded-full border-2 border-white shadow-lg relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-[8px] text-white`}>
+                                            {isLost ? '!' : guard.id.slice(-3)}
+                                        </div>
                                     </div>
-                                </div>
-                            </Overlay>
-                        ))}
+                                </Overlay>
+                            );
+                        })}
                     </PigeonMap>
 
                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-md text-xs font-mono text-emerald-600 border border-emerald-500/30 flex items-center gap-2 shadow-sm z-10 pointer-events-none">
@@ -159,7 +216,7 @@ const Monitor = () => {
                             </div>
                             <span className="text-[10px] text-slate-400 font-normal">Recientes</span>
                         </h3>
-                        {/* (History mapping same as before...) */}
+                        {/* Historial de mensajes */}
                         <div className="space-y-3 mb-6">
                             {incomingMessages.length === 0 ? (
                                 <p className="text-xs text-slate-400 text-center py-4 italic">Sin mensajes nuevos</p>
@@ -189,19 +246,19 @@ const Monitor = () => {
                             Alertas de Sistema
                         </h3>
                         <div className="space-y-3 overflow-y-auto pr-2">
-                            {mockAlerts.map(alert => (
-                                <div key={alert.id} className={`p-3 rounded-lg border flex flex-col gap-1 ${alert.type === 'CRITICAL' ? 'bg-red-50 border-red-100' :
+                            {alerts.map(alert => (
+                                <div key={alert.id} className={`p-3 rounded-lg border flex flex-col gap-1 animate-pulse-subtle ${alert.type === 'CRITICAL' ? 'bg-red-50 border-red-200' :
                                     alert.type === 'WARNING' ? 'bg-amber-50 border-amber-100' :
                                         'bg-blue-50 border-blue-100'
                                     }`}>
                                     <div className="flex justify-between items-start">
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${alert.type === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${alert.type === 'CRITICAL' ? 'bg-red-200 text-red-700' :
                                             alert.type === 'WARNING' ? 'bg-amber-100 text-amber-800' :
                                                 'bg-blue-100 text-blue-700'
                                             }`}>{alert.type}</span>
-                                        <span className="text-xs text-slate-400">{alert.time}</span>
+                                        <span className="text-[9px] text-slate-400">{alert.time}</span>
                                     </div>
-                                    <p className="text-sm text-slate-700 font-medium leading-tight">{alert.msg}</p>
+                                    <p className="text-xs text-slate-700 font-bold leading-tight">{alert.msg}</p>
                                 </div>
                             ))}
                         </div>
@@ -217,29 +274,33 @@ const Monitor = () => {
                             {guardsOnMap.length === 0 ? (
                                 <p className="text-xs text-slate-400 text-center py-4">No hay personal autorizado reportando GPS</p>
                             ) : (
-                                guardsOnMap.map(guard => (
-                                    <div key={guard.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-900 text-blue-100 flex items-center justify-center font-bold text-xs border border-blue-800">
-                                                {guard.name.charAt(0)}{guard.name.split(' ')[1]?.charAt(0) || ''}
+                                guardsOnMap.map(guard => {
+                                    const isLost = (Date.now() - guard.lastSeen) > 20000;
+                                    return (
+                                        <div key={guard.id} className={`flex items-center justify-between p-2 rounded-lg transition-colors border border-transparent ${isLost ? 'bg-red-50 border-red-100' : 'hover:bg-slate-50 hover:border-slate-100'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${isLost ? 'bg-red-600 text-white border-red-700' : 'bg-blue-900 text-blue-100 border-blue-800'}`}>
+                                                    {guard.name.charAt(0)}{guard.name.split(' ')[1]?.charAt(0) || ''}
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm font-medium ${isLost ? 'text-red-700' : 'text-slate-800'}`}>{guard.name}</p>
+                                                    <p className="text-[10px] uppercase flex items-center gap-1">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${isLost ? 'bg-red-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
+                                                        <span className={isLost ? 'text-red-500 font-bold' : 'text-slate-500'}>
+                                                            {isLost ? 'SEÑAL PERDIDA' : 'CONECTADO'}
+                                                        </span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-800">{guard.name}</p>
-                                                <p className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
-                                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                                    GPS Activo - {guard.id}
-                                                </p>
-                                            </div>
+                                            <button
+                                                onClick={() => setMapState({ center: [guard.lat, guard.lng], zoom: 16 })}
+                                                className={`p-1.5 rounded-md transition-colors ${isLost ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'hover:bg-blue-50 text-blue-600'}`}
+                                            >
+                                                <MapPin size={14} />
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => setMapState({ center: [guard.lat, guard.lng], zoom: 16 })}
-                                            className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-md transition-colors"
-                                            title="Enfocar en mapa"
-                                        >
-                                            <MapPin size={14} />
-                                        </button>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
