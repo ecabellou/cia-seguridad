@@ -35,19 +35,30 @@ export const useLocationTracker = (guardId?: string, guardName?: string) => {
             }
         };
 
-        // Use REAL GPS if available
+        // Use REAL GPS with MAXIMUM precision settings
         let watchId: number | null = null;
         if ("geolocation" in navigator) {
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
-                    updateDatabase(position.coords.latitude, position.coords.longitude);
+                    const { latitude, longitude, accuracy } = position.coords;
+
+                    // Solo actualizamos si la precision es menor a 50 metros (evita saltos locos)
+                    // En campo abierto, los teléfonos modernos bajan a 3-10 metros.
+                    if (accuracy < 80) {
+                        updateDatabase(latitude, longitude);
+                    } else {
+                        console.warn(`GPS con baja precisión (${accuracy}m), esperando mejor señal...`);
+                    }
                 },
                 (error) => {
                     console.warn("GPS Access denied or error:", error.message);
-                    // Fallback to simulator if GPS fails
                     startSimulator();
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                {
+                    enableHighAccuracy: true, // FUERZA el uso del chip GPS (gasta más batería pero es preciso)
+                    timeout: 5000,            // Máximo 5 segundos para obtener posición
+                    maximumAge: 0             // No usar posiciones guardadas en caché
+                }
             );
         } else {
             startSimulator();
