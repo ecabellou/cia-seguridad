@@ -1,4 +1,5 @@
-import { Activity, AlertTriangle, Radio, Users, MessageSquare, MapPin } from 'lucide-react';
+import { Activity, AlertTriangle, Radio, Users, MessageSquare } from 'lucide-react';
+import { Map as PigeonMap, Overlay } from 'pigeon-maps'
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessages, type Message } from '../../lib/useMessages';
@@ -79,43 +80,38 @@ const Monitor = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
 
                 {/* Map Column (2/3 width) */}
-                <div className="lg:col-span-2 bg-slate-100 border border-slate-200 rounded-2xl p-0 relative overflow-hidden group shadow-sm bg-[url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/-70.6483,33.4489,13,0/800x600@2x?access_token=placeholder')] bg-cover">
-                    <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px]" />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-md text-xs font-mono text-emerald-600 border border-emerald-500/30 flex items-center gap-2 shadow-sm z-10">
-                        <Radio size={12} className="animate-pulse" /> LIVE GPS FEED
-                    </div>
-
-                    {/* Dynamic Map Markers */}
-                    {guardsOnMap.map((guard) => {
-                        // Simulating a mapping of lat/lng to container % for the mock map
-                        // Since center is [-33.4489, -70.6483] and random range is 0.01
-                        const x = 50 + (guard.lng - (-70.6483)) * 5000;
-                        const y = 50 - (guard.lat - (-33.4489)) * 5000;
-
-                        return (
-                            <div
+                <div className="lg:col-span-2 bg-slate-100 border border-slate-200 rounded-2xl p-0 relative overflow-hidden group shadow-sm min-h-[500px]">
+                    <PigeonMap
+                        defaultCenter={[-33.4489, -70.6483]}
+                        defaultZoom={11}
+                        metaWheelZoom={true}
+                    >
+                        {guardsOnMap.map((guard) => (
+                            <Overlay
                                 key={guard.id}
-                                className="absolute transition-all duration-1000 ease-linear group/marker z-20"
-                                style={{ left: `${x}%`, top: `${y}%` }}
+                                anchor={[guard.lat, guard.lng]}
+                                offset={[0, 0]}
                             >
-                                <div className="absolute -top-12 -left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity flex flex-col items-center">
-                                    <span className="font-bold">{guard.name}</span>
-                                    <span className="text-emerald-400 text-[8px]">GPS ACTIVO</span>
-                                    <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45" />
-                                </div>
-                                <div className="relative">
-                                    <div className="w-10 h-10 bg-blue-500/20 rounded-full animate-ping absolute -translate-x-1/2 -translate-y-1/2" />
-                                    <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                                        <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+                                <div className="relative group/marker">
+                                    {/* Name Tag */}
+                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity flex flex-col items-center z-50">
+                                        <span className="font-bold">{guard.name}</span>
+                                        <span className="text-[8px] text-slate-400">ID: {guard.id}</span>
+                                        <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45" />
                                     </div>
-                                    <MapPin size={16} className="text-blue-600 absolute -top-4 -translate-x-1/2 opacity-0 group-hover/marker:opacity-100 transition-opacity" />
-                                </div>
-                            </div>
-                        );
-                    })}
 
-                    <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-lg shadow-sm border border-slate-200 text-[10px] text-slate-500 z-10">
-                        Map style: Light v10 / Chile
+                                    {/* Indicator */}
+                                    <div className="w-10 h-10 bg-blue-500/20 rounded-full animate-ping absolute -translate-x-1/2 -translate-y-1/2" />
+                                    <div className="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                                        <span className="text-[8px] text-white font-bold">{guard.id.slice(-3)}</span>
+                                    </div>
+                                </div>
+                            </Overlay>
+                        ))}
+                    </PigeonMap>
+
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-md text-xs font-mono text-emerald-600 border border-emerald-500/30 flex items-center gap-2 shadow-sm z-10 pointer-events-none">
+                        <Radio size={12} className="animate-pulse" /> LIVE GPS FEED
                     </div>
                 </div>
 
