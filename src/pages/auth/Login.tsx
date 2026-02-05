@@ -26,14 +26,24 @@ const Login = () => {
             if (error) throw error;
 
             if (user) {
-                // Fetch Role from Profiles
-                const { data: profile } = await supabase
+                // Fetch Role from Profiles - First try by ID
+                let { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('role')
                     .eq('id', user.id)
                     .single();
 
-                const role = profile?.role || 'guard'; // Default to guard if no role
+                // If not found by ID (common if user was created manually in Auth), try by email
+                if (profileError || !profile) {
+                    const { data: profileByEmail } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('email', user.email)
+                        .single();
+                    profile = profileByEmail;
+                }
+
+                const role = profile?.role || 'guard';
 
                 if (role === 'admin') navigate('/admin/dashboard');
                 else if (role === 'control') navigate('/control/monitor');
