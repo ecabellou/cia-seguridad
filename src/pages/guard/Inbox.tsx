@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Bell, Clock, CheckCircle } from 'lucide-react';
-import { useMessages, type Message } from '../../lib/useMessages';
+import { useMessages } from '../../lib/useMessages';
 import { supabase } from '../../lib/supabase';
 
 const Inbox = () => {

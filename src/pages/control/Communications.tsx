@@ -212,7 +212,8 @@ const ControlCommunications = () => {
                             </div>
                         ))}
                     </div>
-                </div>            </div>
+                </div>
+            </div>
         </div>
     );
 };
