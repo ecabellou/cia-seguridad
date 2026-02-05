@@ -107,7 +107,14 @@ const GuardLayout = () => {
                     <img src="/logo.png" className="h-8 w-8 object-contain" />
                     <span className="text-white font-bold">CIA Seguridad</span>
                 </div>
-                {/* Mobile menu toggle would go here */}
+
+                <button
+                    onClick={handleLogout}
+                    className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                    title="Cerrar Sesión"
+                >
+                    <LogOut size={22} />
+                </button>
             </div>
 
             {/* Main Content */}
