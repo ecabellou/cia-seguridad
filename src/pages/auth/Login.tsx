@@ -17,6 +17,18 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
 
+        // Emergency Bypass (TEMPORAL: SOLO PARA DEMO)
+        if (formData.email === 'demo@cia.cl' && formData.password === 'demo123') {
+            // Simulamos un login exitoso
+            localStorage.setItem('sb-xgrllphptyimbzoglzty-auth-token', JSON.stringify({
+                user: { id: 'generic-admin', email: 'demo@cia.cl', role: 'authenticated' },
+                access_token: 'fake-token',
+                refresh_token: 'fake-refresh-token'
+            }));
+            navigate('/admin/dashboard');
+            return;
+        }
+
         try {
             const { data: { user }, error } = await supabase.auth.signInWithPassword({
                 email: formData.email,
@@ -50,6 +62,16 @@ const Login = () => {
                             console.error("Error unificando perfiles:", e);
                         }
                     }
+                } else {
+                    // Si no tiene perfil, lo creamos al vuelo (Fallback de seguridad)
+                    const { error: insErr } = await supabase.from('profiles').insert({
+                        id: user.id,
+                        email: user.email,
+                        role: 'guard', // Por defecto guardia
+                        first_name: 'Nuevo Usuario',
+                        status: 'active'
+                    });
+                    if (insErr) console.error("Error creando perfil fallback:", insErr);
                 }
 
                 if (finalRole === 'admin') navigate('/admin/dashboard');
