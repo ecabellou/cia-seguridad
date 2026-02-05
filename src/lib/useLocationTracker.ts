@@ -77,9 +77,16 @@ export const useLocationTracker = (guardId?: string, guardName?: string) => {
     // 2. READ ALL LOCATIONS (Poller - For Control Panel)
     useEffect(() => {
         const fetchAll = async () => {
+            // Fetch locations and cross-reference with profiles table (Real DB)
             const { data, error } = await supabase
                 .from('guard_locations')
-                .select('*');
+                .select(`
+                    *,
+                    profiles:id (
+                        role,
+                        status
+                    )
+                `);
 
             if (error) {
                 console.error("Error fetching locations:", error);
@@ -88,14 +95,21 @@ export const useLocationTracker = (guardId?: string, guardName?: string) => {
 
             const activeLocations: Record<string, GuardLocation> = {};
             data.forEach((loc: any) => {
-                activeLocations[loc.id] = {
-                    id: loc.id,
-                    name: loc.name,
-                    lat: loc.lat,
-                    lng: loc.lng,
-                    status: (loc.status as any) || 'active',
-                    lastSeen: new Date(loc.last_seen).getTime()
-                };
+                // SOLO mostramos si el perfil existe en la BD real y es guardia o control
+                const profile = loc.profiles;
+                const isAuthorized = profile && (profile.role === 'guard' || profile.role === 'control');
+                const isActive = profile && profile.status === 'active';
+
+                if (isAuthorized && isActive) {
+                    activeLocations[loc.id] = {
+                        id: loc.id,
+                        name: loc.name,
+                        lat: loc.lat,
+                        lng: loc.lng,
+                        status: (loc.status as any) || 'active',
+                        lastSeen: new Date(loc.last_seen).getTime()
+                    };
+                }
             });
             setAllLocations(activeLocations);
         };
@@ -103,7 +117,7 @@ export const useLocationTracker = (guardId?: string, guardName?: string) => {
         fetchAll();
         const interval = setInterval(fetchAll, 5000); // Poll every 5 seconds
 
-        // Realtime Subscription (Optional but better)
+        // Realtime Subscription
         const subscription = supabase
             .channel('guard_locations_changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'guard_locations' }, fetchAll)

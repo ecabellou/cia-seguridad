@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Radio, Users, MessageSquare } from 'lucide-react';
+import { Activity, AlertTriangle, Radio, Users, MessageSquare, MapPin } from 'lucide-react';
 import { Map as PigeonMap, Overlay } from 'pigeon-maps'
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,14 @@ const Monitor = () => {
     const navigate = useNavigate();
     const { messages } = useMessages();
     const { allLocations } = useLocationTracker();
+
+    // Convertimos a array (ya vienen filtrados por el Hook useLocationTracker con la BD Real)
     const guardsOnMap = Object.values(allLocations);
+
+    const [mapState, setMapState] = useState<{ center: [number, number], zoom: number }>({
+        center: [-33.4489, -70.6483],
+        zoom: 11
+    });
 
     const incomingMessages = messages.filter(m => m.to === 'control' || m.to === 'all');
 
@@ -37,6 +44,23 @@ const Monitor = () => {
             }
         }
     }, [incomingMessages, lastSeenId]);
+
+    // Función para ir a la vista general automáticamente
+    const handleGeneralView = () => {
+        if (guardsOnMap.length === 0) {
+            setMapState({ center: [-33.4489, -70.6483], zoom: 11 });
+            return;
+        }
+
+        // Calcular el centro promedio de todos los guardias
+        const avgLat = guardsOnMap.reduce((sum, g) => sum + g.lat, 0) / guardsOnMap.length;
+        const avgLng = guardsOnMap.reduce((sum, g) => sum + g.lng, 0) / guardsOnMap.length;
+
+        // Ajustar zoom dinámicamente si hay más de uno (simplificado)
+        const zoom = guardsOnMap.length > 1 ? 12 : 15;
+
+        setMapState({ center: [avgLat, avgLng], zoom });
+    };
 
     const handleMessageClick = (msg: Message) => {
         navigate(`/control/communications?replyTo=${msg.from}`);
@@ -69,9 +93,16 @@ const Monitor = () => {
                     <p className="text-slate-500">Monitoreo en tiempo real de unidades y dispositivos</p>
                 </div>
                 <div className="flex gap-4">
+                    <button
+                        onClick={handleGeneralView}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all font-bold text-sm"
+                    >
+                        <Users size={18} />
+                        Vista General
+                    </button>
                     <div className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-slate-600 flex items-center gap-2 shadow-sm">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Conectado con {guardsOnMap.length} dispositivo(s)
+                        {guardsOnMap.length} en Turno
                     </div>
                 </div>
             </header>
@@ -82,8 +113,9 @@ const Monitor = () => {
                 {/* Map Column (2/3 width) */}
                 <div className="lg:col-span-2 bg-slate-100 border border-slate-200 rounded-2xl p-0 relative overflow-hidden group shadow-sm min-h-[500px]">
                     <PigeonMap
-                        defaultCenter={[-33.4489, -70.6483]}
-                        defaultZoom={11}
+                        center={mapState.center}
+                        zoom={mapState.zoom}
+                        onBoundsChanged={({ center, zoom }) => setMapState({ center, zoom })}
                         metaWheelZoom={true}
                     >
                         {guardsOnMap.map((guard) => (
@@ -183,25 +215,29 @@ const Monitor = () => {
                         </h3>
                         <div className="space-y-3 overflow-y-auto">
                             {guardsOnMap.length === 0 ? (
-                                <p className="text-xs text-slate-400 text-center py-4">No hay dispositivos reportando GPS</p>
+                                <p className="text-xs text-slate-400 text-center py-4">No hay personal autorizado reportando GPS</p>
                             ) : (
                                 guardsOnMap.map(guard => (
                                     <div key={guard.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-900 text-blue-100 flex items-center justify-center font-bold text-xs border border-blue-800">
-                                                {guard.name.charAt(0)}{guard.name.split(' ')[1].charAt(0)}
+                                                {guard.name.charAt(0)}{guard.name.split(' ')[1]?.charAt(0) || ''}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-800">{guard.name}</p>
                                                 <p className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
                                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                                    En movimiento
+                                                    GPS Activo - {guard.id}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-mono text-slate-400">{guard.lat.toFixed(4)}, {guard.lng.toFixed(4)}</p>
-                                        </div>
+                                        <button
+                                            onClick={() => setMapState({ center: [guard.lat, guard.lng], zoom: 16 })}
+                                            className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-md transition-colors"
+                                            title="Enfocar en mapa"
+                                        >
+                                            <MapPin size={14} />
+                                        </button>
                                     </div>
                                 ))
                             )}
