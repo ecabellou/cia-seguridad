@@ -1,8 +1,15 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Radio, FileText, LogOut } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const ControlLayout = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
 
     const navItems = [
         { to: '/control/monitor', icon: Activity, label: 'Monitor En Vivo' },
@@ -42,7 +49,10 @@ const ControlLayout = () => {
                 </div>
 
                 <div className="p-4 border-t border-slate-800">
-                    <button className="flex items-center justify-center lg:justify-start w-full lg:px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center lg:justify-start w-full lg:px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                    >
                         <LogOut size={20} />
                         <span className="hidden lg:block ml-3">Salir</span>
                     </button>

@@ -1,8 +1,15 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Map, FileText, LogOut, MessageSquare } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const AdminLayout = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
 
     const navItems = [
         { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -28,8 +35,8 @@ const AdminLayout = () => {
                                 key={item.to}
                                 to={item.to}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                                        ? 'bg-slate-800 text-blue-400 shadow-lg shadow-blue-500/10'
-                                        : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
+                                    ? 'bg-slate-800 text-blue-400 shadow-lg shadow-blue-500/10'
+                                    : 'hover:bg-slate-800 text-slate-400 hover:text-slate-100'
                                     }`}
                             >
                                 <item.icon size={20} />
@@ -44,7 +51,10 @@ const AdminLayout = () => {
                 </div>
 
                 <div className="p-4 border-t border-zinc-800">
-                    <button className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                    >
                         <LogOut size={20} />
                         <span>Cerrar Sesión</span>
                     </button>

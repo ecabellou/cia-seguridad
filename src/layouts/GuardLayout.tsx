@@ -1,11 +1,18 @@
-import { Outlet, Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Outlet, Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, ScanLine, MapPin, BookOpen, AlertTriangle, LogOut, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { useLocationTracker } from '../lib/useLocationTracker';
+import { supabase } from '../lib/supabase';
 
 const GuardLayout = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
 
     // Start tracking this guard (simulated for now)
     // Use URL params for testing: ?id=G-002&name=Diego+Soto
@@ -66,9 +73,12 @@ const GuardLayout = () => {
                         <span>Botón de Pánico</span>
                     </button>
 
-                    <button className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-red-400 py-2 text-sm transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-red-400 py-2 text-sm transition-colors"
+                    >
                         <LogOut size={16} />
-                        <span>Cerrar Turno</span>
+                        <span>Cerrar Sesión</span>
                     </button>
                 </div>
             </aside>
