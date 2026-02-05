@@ -1,79 +1,84 @@
 import { useState, useEffect } from 'react';
+import { supabase } from './supabase';
 
-// Define the shape of our message
 export interface Message {
     id: number;
     title: string;
     message: string;
     from: 'control' | 'admin';
-    to: 'admin' | 'guards' | 'control' | 'all';
+    to: 'admin' | 'guards' | 'control' | 'all' | string;
     timestamp: number;
     read: boolean;
     priority: 'normal' | 'high';
 }
 
-const STORAGE_KEY = 'cia_security_communications';
-
 export const useMessages = () => {
     const [messages, setMessages] = useState<Message[]>([]);
 
-    // Load messages from storage on mount
-    useEffect(() => {
-        const loadMessages = () => {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                try {
-                    setMessages(JSON.parse(stored));
-                } catch (e) {
-                    console.error("Failed to parse messages", e);
-                }
-            }
-        };
+    const fetchMessages = async () => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        loadMessages();
+        if (error) {
+            console.error("Error fetching messages:", error);
+            return;
+        }
 
-        // Listen for storage events (cross-tab sync)
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === STORAGE_KEY) {
-                loadMessages();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    const sendMessage = (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-        const newMessage: Message = {
-            ...msg,
-            id: Date.now(),
-            timestamp: Date.now(),
-            read: false,
-        };
-
-        const updatedMessages = [newMessage, ...messages];
-        setMessages(updatedMessages);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMessages));
-
-        // Dispatch a custom event for same-tab updates if needed, 
-        // though React state update handles this component's re-render.
-        // For other components in the SAME tab to update effectively without Context, 
-        // we can dispatch a window event.
-        window.dispatchEvent(new Event('local-storage-update'));
+        const formatted = data.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            message: m.message,
+            from: m.from_role,
+            to: m.to_target,
+            timestamp: new Date(m.created_at).getTime(),
+            read: m.is_read,
+            priority: m.priority
+        }));
+        setMessages(formatted);
     };
 
-    // Poll for changes in the same tab (since storage event only fires for OTHER tabs)
     useEffect(() => {
-        const handleLocalUpdate = () => {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                setMessages(JSON.parse(stored));
-            }
-        };
+        fetchMessages();
 
-        window.addEventListener('local-storage-update', handleLocalUpdate);
-        return () => window.removeEventListener('local-storage-update', handleLocalUpdate);
+        // Subscribe to real-time changes
+        const subscription = supabase
+            .channel('public:messages')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchMessages)
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
     }, []);
 
-    return { messages, sendMessage };
+    const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+        const { error } = await supabase
+            .from('messages')
+            .insert({
+                title: msg.title,
+                message: msg.message,
+                from_role: msg.from,
+                to_target: msg.to,
+                priority: msg.priority,
+                is_read: false
+            });
+
+        if (error) {
+            console.error("Error sending message:", error);
+            throw error;
+        }
+    };
+
+    const markAsRead = async (messageId: number) => {
+        const { error } = await supabase
+            .from('messages')
+            .update({ is_read: true })
+            .eq('id', messageId);
+
+        if (error) console.error("Error marking as read:", error);
+    };
+
+    return { messages, sendMessage, markAsRead };
 };

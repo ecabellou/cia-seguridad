@@ -43,24 +43,28 @@ const ControlCommunications = () => {
     // Filter history
     const history = messages.filter(m => m.from === 'control' || m.to === 'control' || m.to === 'all');
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        sendMessage({
-            title,
-            message,
-            from: 'control',
-            to: target as any,
-            priority
-        });
+        try {
+            await sendMessage({
+                title,
+                message,
+                from: 'control',
+                to: target as any,
+                priority
+            });
 
-        const targetName = target === 'guards' ? 'todos los guardias' :
-            target === 'admin' ? 'la administración' :
-                guardsList.find(g => g.id === target)?.name || 'el guardia';
+            const targetName = target === 'guards' ? 'todos los guardias' :
+                target === 'admin' ? 'la administración' :
+                    guardsList.find(g => g.id === target)?.name || 'el guardia';
 
-        setTitle('');
-        setMessage('');
-        alert(`Comunicado enviado a ${targetName}`);
+            setTitle('');
+            setMessage('');
+            alert(`✅ Comunicado enviado con éxito a ${targetName}`);
+        } catch (error) {
+            alert('❌ Error al enviar el comunicado. Por favor intente de nuevo.');
+        }
     };
 
     return (

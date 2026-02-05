@@ -4,7 +4,7 @@ import { useMessages } from '../../lib/useMessages';
 import { supabase } from '../../lib/supabase';
 
 const Inbox = () => {
-    const { messages } = useMessages();
+    const { messages, markAsRead } = useMessages();
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -77,7 +77,10 @@ const Inbox = () => {
                             <p className="text-sm text-slate-600 leading-relaxed">{msg.message}</p>
 
                             {!msg.read && (
-                                <button className="mt-4 w-full py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => markAsRead(msg.id)}
+                                    className="mt-4 w-full py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                                >
                                     <CheckCircle size={14} />
                                     Marcar como Leído
                                 </button>
