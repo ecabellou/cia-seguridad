@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, ScanLine, MapPin, BookOpen, AlertTriangle, LogOut, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
@@ -8,17 +9,34 @@ const GuardLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const [profile, setProfile] = useState<{ id: string, first_name: string, last_name: string } | null>(null);
+
+    useEffect(() => {
+        const getProfile = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name')
+                    .eq('id', user.id)
+                    .single();
+                if (data) setProfile(data);
+            }
+        };
+        getProfile();
+    }, []);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
     };
 
-    // Start tracking this guard (simulated for now)
-    // Use URL params for testing: ?id=G-002&name=Diego+Soto
-    const guardId = searchParams.get('id') || 'G-001';
-    const guardName = searchParams.get('name') || 'Juan Pérez';
-    useLocationTracker(guardId, guardName);
+    // Use REAL ID and Name from profile, fallback to search params for testing/emergency
+    const guardId = profile?.id || searchParams.get('id') || 'G-WAIT';
+    const guardName = profile ? `${profile.first_name} ${profile.last_name || ''}` : (searchParams.get('name') || 'Cargando...');
+
+    // Solo activamos el tracker si ya tenemos el perfil u operamos en modo test
+    useLocationTracker(guardId !== 'G-WAIT' ? guardId : undefined, guardName);
 
     const navItems = [
         { to: '/guard/home', icon: ShieldCheck, label: 'Dashboard' },
