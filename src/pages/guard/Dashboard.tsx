@@ -1,5 +1,5 @@
 
-import { AlertCircle, ArrowRight, BookOpen, Calendar, ChevronRight, Clock, MessageSquare, ScanLine, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Calendar, MessageSquare, ScanLine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {

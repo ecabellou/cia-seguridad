@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Camera, CheckCircle, Upload, ScanLine, FileText } from 'lucide-react';
+import { Camera, ScanLine, FileText } from 'lucide-react';
 
 const AccessControl = () => {
     const [mode, setMode] = useState<'entry' | 'exit'>('entry');

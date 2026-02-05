@@ -1,5 +1,5 @@
 
-import { AlertTriangle, Bell, Clock, Info, User } from 'lucide-react';
+import { AlertTriangle, Bell, Clock } from 'lucide-react';
 
 interface Message {
     id: number;
