@@ -4,6 +4,75 @@ import { ShieldCheck, ScanLine, MapPin, BookOpen, AlertTriangle, LogOut, Message
 import clsx from 'clsx';
 import { useLocationTracker } from '../lib/useLocationTracker';
 import { supabase } from '../lib/supabase';
+import { useMessages } from '../lib/useMessages';
+
+// Popup de Alerta Global
+const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
+    const { latestMessage } = useMessages();
+    const [alert, setAlert] = useState<any | null>(null);
+    const [audio] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // Sonido de alerta fuerte
+
+    useEffect(() => {
+        if (!latestMessage || !profileId) return;
+
+        // Verificar si el mensaje es para mí o para todos los guardias
+        const isForMe = latestMessage.to === profileId || latestMessage.to === 'guards' || latestMessage.to === 'all';
+
+        // Verificar que NO sea mi propio mensaje (si yo mandé algo, no me alerto)
+        const isFromMe = latestMessage.sender_id === profileId;
+
+        if (isForMe && !isFromMe && !latestMessage.read) {
+            setAlert(latestMessage);
+            // Intentar reproducir sonido
+            try {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Audio autoplay blocked", e));
+            } catch (e) {
+                console.log("Error de audio");
+            }
+        }
+    }, [latestMessage, profileId]);
+
+    if (!alert) return null;
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-900/40 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white border-2 border-red-500 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative">
+                {/* Header Animado */}
+                <div className="bg-red-600 p-6 text-white text-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-red-500 animate-pulse"></div>
+                    <div className="relative z-10 flex flex-col items-center gap-2">
+                        <AlertTriangle size={48} className="animate-bounce" />
+                        <h2 className="text-2xl font-black uppercase tracking-widest">Nueva Alerta</h2>
+                    </div>
+                </div>
+
+                <div className="p-8 text-center space-y-4">
+                    <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                        <h3 className="text-lg font-bold text-slate-800 mb-1">{alert.title}</h3>
+                        <p className="text-sm text-slate-600 font-medium">
+                            De: {alert.from === 'admin' ? 'Administración' : 'Central Control'}
+                        </p>
+                    </div>
+
+                    <p className="text-lg text-slate-700 leading-relaxed px-2">
+                        {alert.message}
+                    </p>
+
+                    <button
+                        onClick={() => {
+                            audio.pause();
+                            setAlert(null);
+                        }}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl text-lg shadow-lg transform transition-all active:scale-95"
+                    >
+                        Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const GuardLayout = () => {
     const location = useLocation();
@@ -47,6 +116,9 @@ const GuardLayout = () => {
     // Solo activamos el tracker si ya tenemos el perfil u operamos en modo test
     useLocationTracker(guardId !== 'G-WAIT' ? guardId : undefined, guardName);
 
+    // Importamos useMessages dentro del componente hijo o aquí
+    useMessages(); // Esto solo inicializa el hook para que esté activo si no hay otros componentes usándolo
+
     const navItems = [
         { to: '/guard/home', icon: ShieldCheck, label: 'Dashboard' },
         { to: '/guard/access', icon: ScanLine, label: 'Control de Acceso' },
@@ -57,6 +129,9 @@ const GuardLayout = () => {
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+            {/* ALERT SYSTEM GLOBAL */}
+            <GuardAlertSystem profileId={guardId !== 'G-WAIT' ? guardId : null} />
+
             {/* Sidebar */}
             <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden md:flex flex-col text-slate-300">
                 {/* Logo Area */}

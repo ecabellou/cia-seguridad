@@ -49,7 +49,8 @@ const Inbox = () => {
                 message: replyText,
                 from: 'guard',
                 to: targetRole,
-                priority: 'normal'
+                priority: 'normal',
+                sender_id: userId || undefined
             });
 
             setReplyingTo(null);
