@@ -7,8 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useMessages } from '../lib/useMessages';
 
 // Popup de Alerta Global
-const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
-    const { latestMessage } = useMessages();
+const GuardAlertSystem = ({ profileId, latestMessage }: { profileId: string | null, latestMessage: any }) => {
     const [alert, setAlert] = useState<any | null>(null);
     const [audio] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // Sonido de alerta fuerte
 
@@ -21,7 +20,9 @@ const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
         // Verificar que NO sea mi propio mensaje (si yo mandé algo, no me alerto)
         const isFromMe = latestMessage.sender_id === profileId;
 
-        if (isForMe && !isFromMe && !latestMessage.read) {
+        // ALERTAR SIEMPRE si es para mí y no lo leí (aunque sea update, si llega como 'latest' asumimos que es relevante)
+        // Eliminamos filtros complejos para asegurar que se vea.
+        if (isForMe && !isFromMe) {
             setAlert(latestMessage);
             // Intentar reproducir sonido
             try {
@@ -36,7 +37,7 @@ const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
     if (!alert) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-900/40 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-md animate-in fade-in zoom-in-95 duration-300">
             <div className="bg-white border-2 border-red-500 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative">
                 {/* Header Animado */}
                 <div className="bg-red-600 p-6 text-white text-center relative overflow-hidden">
@@ -55,7 +56,7 @@ const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
                         </p>
                     </div>
 
-                    <p className="text-lg text-slate-700 leading-relaxed px-2">
+                    <p className="text-lg text-slate-700 leading-relaxed px-2 font-bold">
                         {alert.message}
                     </p>
 
@@ -87,7 +88,7 @@ const GuardLayout = () => {
     const [profile, setProfile] = useState<{ id: string, first_name: string, last_name: string } | null>(null);
 
     // Ensure useMessages is instantiated to listen for global events
-    useMessages();
+    const { latestMessage } = useMessages();
 
     useEffect(() => {
         const getProfile = async () => {
@@ -125,9 +126,6 @@ const GuardLayout = () => {
     // Solo activamos el tracker si ya tenemos el perfil u operamos en modo test
     useLocationTracker(guardId !== 'G-WAIT' ? guardId : undefined, guardName);
 
-    // Importamos useMessages dentro del componente hijo o aquí
-    useMessages(); // Esto solo inicializa el hook para que esté activo si no hay otros componentes usándolo
-
     const navItems = [
         { to: '/guard/home', icon: ShieldCheck, label: 'Dashboard' },
         { to: '/guard/access', icon: ScanLine, label: 'Control de Acceso' },
@@ -139,7 +137,7 @@ const GuardLayout = () => {
     return (
         <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
             {/* ALERT SYSTEM GLOBAL */}
-            <GuardAlertSystem profileId={guardId !== 'G-WAIT' ? guardId : null} />
+            <GuardAlertSystem profileId={guardId !== 'G-WAIT' ? guardId : null} latestMessage={latestMessage} />
 
             {/* Sidebar */}
             <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden md:flex flex-col text-slate-300">
