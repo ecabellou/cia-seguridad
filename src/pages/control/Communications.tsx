@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Send, Users, MessageSquare, CheckCircle, Clock, AlertTriangle, User, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useMessages, type Message } from '../../lib/useMessages';
@@ -13,6 +13,7 @@ const ControlCommunications = () => {
     const [selectedThreadId, setSelectedThreadId] = useState<string>('general');
     const [replyText, setReplyText] = useState('');
     const [priority, setPriority] = useState<'normal' | 'high'>('normal');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Guards Data
     const [guardsList, setGuardsList] = useState<{ id: string, name: string, status: string }[]>([]);
@@ -167,7 +168,14 @@ const ControlCommunications = () => {
     const activeThreadMessages = threads[selectedThreadId] || []; // already sorted desc
     // We want to display asc (oldest top) for chat view usually, or desc if we stick to 'feed' style. 
     // Chat standard is bottom-up (newest at bottom).
-    const displayMessages = [...activeThreadMessages].reverse();
+    const displayMessages = [...activeThreadMessages].reverse(); // reverse for bottom-up chat standard if needed, or keep chronological
+
+    // Auto-scroll to bottom of chat
+    useEffect(() => {
+        if (displayMessages.length > 0) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [displayMessages.length, selectedThreadId]);
 
     return (
         <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-6 max-w-7xl mx-auto">
@@ -313,6 +321,7 @@ const ControlCommunications = () => {
                             );
                         })
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}

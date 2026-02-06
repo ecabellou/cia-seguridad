@@ -59,6 +59,10 @@ const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
                         {alert.message}
                     </p>
 
+                    <p className="text-xs text-slate-400 italic mb-2">
+                        Si no escuchó la alerta, toque la pantalla para habilitar el sonido.
+                    </p>
+
                     <div className="grid grid-cols-1 gap-2">
                         <button
                             onClick={() => {
