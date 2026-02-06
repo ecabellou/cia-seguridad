@@ -99,7 +99,6 @@ const Inbox = () => {
                     chatMessages.map((msg) => {
                         const isMe = msg.sender_id === userId;
                         const isAdmin = msg.from === 'admin';
-                        const isControl = msg.from === 'control';
 
                         return (
                             <div key={msg.id} className={clsx("flex flex-col max-w-[85%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
