@@ -1,0 +1,4 @@
+
+const bcrypt = require('bcryptjs'); // standard library usually in projects, or verify what is installed
+// If not installed, I can try native crypto or just search.
+// But let's check package.json first.
