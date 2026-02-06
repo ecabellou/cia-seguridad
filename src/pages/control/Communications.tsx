@@ -341,7 +341,7 @@ const ControlCommunications = () => {
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder={selectedThreadId === 'general' ? "Escribir mensaje global a todos los guardias..." : "Escribir mensaje..."}
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all relative z-10"
+                            className="flex-1 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all relative z-10"
                         />
                         <button
                             type="submit"
