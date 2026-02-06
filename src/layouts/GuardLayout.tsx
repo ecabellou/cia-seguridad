@@ -227,7 +227,7 @@ const GuardLayout = () => {
                 </header>
 
                 <div className="flex-1 overflow-auto p-4 md:p-8 pt-20 md:pt-8 bg-slate-100 dark:bg-slate-950">
-                    <Outlet />
+                    <Outlet context={{ profile }} />
                 </div>
             </main>
 

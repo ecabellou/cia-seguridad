@@ -1,8 +1,11 @@
 
 import { ArrowRight, BookOpen, Calendar, MessageSquare, ScanLine } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 
 const Dashboard = () => {
+    const { profile } = useOutletContext<{ profile: { first_name: string, last_name: string } | null }>();
+    const displayName = profile ? `${profile.first_name} ${profile.last_name || ''}` : 'Guardia';
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
 
@@ -11,7 +14,7 @@ const Dashboard = () => {
                 <div className="w-16 h-16 bg-white rounded-2xl mx-auto shadow-sm flex items-center justify-center mb-4 border border-slate-200">
                     <img src="/logo.png" alt="CIA Logo" className="w-10 h-10 object-contain" />
                 </div>
-                <h1 className="text-3xl font-bold text-slate-800">Bienvenido, Guardia</h1>
+                <h1 className="text-3xl font-bold text-slate-800">Bienvenido a su turno, {displayName}</h1>
                 <p className="text-slate-500">Su panel de control para las operaciones del turno.</p>
             </div>
 
