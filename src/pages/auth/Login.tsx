@@ -38,40 +38,29 @@ const Login = () => {
             if (error) throw error;
 
             if (user) {
-                // 1. Buscamos el perfil por EMAIL (es nuestro identificador maestro)
-                const { data: profileByEmail } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('email', user.email)
-                    .order('created_at', { ascending: true }) // Priorizamos el más antiguo (el creado por el admin)
-                    .limit(1)
-                    .single();
-
+                // Usamos la función RPC segura para unificar perfiles
+                // Esto maneja la lógica de: "Si existe un perfil creado manualmente con este email,
+                // borrar el perfil vacío creado por el trigger y mover el manual al ID correcto".
                 let finalRole = 'guard';
+                const { data: roleFromRpc, error: rpcError } = await supabase.rpc('unify_user_profile', {
+                    auth_user_id: user.id,
+                    auth_email: user.email
+                });
 
-                if (profileByEmail) {
-                    finalRole = profileByEmail.role;
+                if (rpcError) {
+                    console.error("Error en unificación:", rpcError);
+                    // Si falla la RPC, intentamos leer el perfil directamente por si ya estaba correcto
+                    const { data: existingProfile } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single();
 
-                    // 2. Si el ID del perfil no coincide con el ID de Auth, lo unificamos
-                    if (profileByEmail.id !== user.id) {
-                        try {
-                            // Actualizamos el ID para que coincida con el de Auth y borramos posibles duplicados basura
-                            await supabase.from('profiles').delete().eq('id', user.id); // Borramos el perfil "basura" si existe
-                            await supabase.from('profiles').update({ id: user.id }).eq('id', profileByEmail.id);
-                        } catch (e) {
-                            console.error("Error unificando perfiles:", e);
-                        }
+                    if (existingProfile) {
+                        finalRole = existingProfile.role;
                     }
                 } else {
-                    // Si no tiene perfil, lo creamos al vuelo (Fallback de seguridad)
-                    const { error: insErr } = await supabase.from('profiles').insert({
-                        id: user.id,
-                        email: user.email,
-                        role: 'guard', // Por defecto guardia
-                        first_name: 'Nuevo Usuario',
-                        status: 'active'
-                    });
-                    if (insErr) console.error("Error creando perfil fallback:", insErr);
+                    finalRole = roleFromRpc || 'guard';
                 }
 
                 if (finalRole === 'admin') navigate('/admin/dashboard');
