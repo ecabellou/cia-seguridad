@@ -59,15 +59,17 @@ const GuardAlertSystem = ({ profileId }: { profileId: string | null }) => {
                         {alert.message}
                     </p>
 
-                    <button
-                        onClick={() => {
-                            audio.pause();
-                            setAlert(null);
-                        }}
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl text-lg shadow-lg transform transition-all active:scale-95"
-                    >
-                        Entendido
-                    </button>
+                    <div className="grid grid-cols-1 gap-2">
+                        <button
+                            onClick={() => {
+                                audio.pause();
+                                setAlert(null);
+                            }}
+                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl text-lg shadow-lg transform transition-all active:scale-95"
+                        >
+                            Entendido
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -79,6 +81,9 @@ const GuardLayout = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [profile, setProfile] = useState<{ id: string, first_name: string, last_name: string } | null>(null);
+
+    // Ensure useMessages is instantiated to listen for global events
+    useMessages();
 
     useEffect(() => {
         const getProfile = async () => {
