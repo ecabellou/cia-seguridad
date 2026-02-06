@@ -170,7 +170,7 @@ const ControlCommunications = () => {
     const displayMessages = [...activeThreadMessages].reverse();
 
     return (
-        <div className="h-[calc(100vh-6rem)] grid grid-cols-12 gap-6 max-w-7xl mx-auto overflow-hidden">
+        <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-6 max-w-7xl mx-auto">
 
             {/* LEFT SIDEBAR: Threads List */}
             <div className="col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
@@ -341,7 +341,7 @@ const ControlCommunications = () => {
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder={selectedThreadId === 'general' ? "Escribir mensaje global a todos los guardias..." : "Escribir mensaje..."}
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all relative z-10"
                         />
                         <button
                             type="submit"
