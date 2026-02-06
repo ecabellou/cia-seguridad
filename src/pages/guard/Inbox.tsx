@@ -134,7 +134,7 @@ const Inbox = () => {
 
             {/* Reply Modal */}
             {replyingTo && (
-                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                             <div>
