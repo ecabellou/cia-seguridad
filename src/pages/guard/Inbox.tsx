@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Bell, Clock, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, Bell, Clock, AlertTriangle, CheckCircle, User, Shield } from 'lucide-react';
 import { useMessages } from '../../lib/useMessages';
 import { supabase } from '../../lib/supabase';
+import clsx from 'clsx';
 
 const Inbox = () => {
     const { messages, markAsRead, sendMessage } = useMessages();
     const [userId, setUserId] = useState<string | null>(null);
-    const [replyingTo, setReplyingTo] = useState<any | null>(null); // Message type inference issue workaround
-    const [replyText, setReplyText] = useState("");
+    const [messageText, setMessageText] = useState("");
     const [sending, setSending] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const getUser = async () => {
@@ -18,168 +19,149 @@ const Inbox = () => {
         getUser();
     }, []);
 
-    // Filter messages for this specific guard
-    const myMessages = messages.filter(m =>
-        m.to === 'guards' ||
-        m.to === 'all' ||
-        m.to === userId
-    );
+    // Filter messages: Incoming (to me/all) OR Outgoing (from me)
+    const chatMessages = messages.filter(m => {
+        const isIncoming = m.to === 'guards' || m.to === 'all' || m.to === userId;
+        const isOutgoing = m.sender_id === userId;
+        return isIncoming || isOutgoing;
+    }).sort((a, b) => a.timestamp - b.timestamp); // Sort chronological for Chat (oldest top, newest bottom)
 
-    const formatTimestamp = (ts: number) => {
-        const diff = Date.now() - ts;
-        const minutes = Math.floor(diff / 60000);
-        if (minutes < 1) return 'Ahora mismo';
-        if (minutes < 60) return `Hace ${minutes} min`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `Hace ${hours} horas`;
-        return new Date(ts).toLocaleDateString();
-    };
+    // Auto-scroll to bottom on new message
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const handleSendReply = async () => {
-        if (!replyingTo || !replyText.trim()) return;
+        // Auto-mark visible unread messages as read
+        if (userId) {
+            const unreadIds = chatMessages
+                .filter(m => !m.read && m.to === userId) // Only mark direct messages or targeted ones
+                .map(m => m.id);
+
+            if (unreadIds.length > 0) {
+                unreadIds.forEach(id => markAsRead(id));
+            }
+        }
+    }, [chatMessages.length, userId]);
+
+
+    const handleSend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!messageText.trim()) return;
 
         setSending(true);
         try {
-            // Identificar el destino correcto basado en quién envió el mensaje original
-            // Si viene de 'admin', respondemos a 'admin'. Si viene de 'control', respondemos a 'control'.
-            const targetRole = replyingTo.from === 'admin' ? 'admin' : 'control';
-
+            // Default to sending to 'control'
             await sendMessage({
-                title: `Re: ${replyingTo.title}`,
-                message: replyText,
+                title: 'Mensaje de Guardia',
+                message: messageText,
                 from: 'guard',
-                to: targetRole,
+                to: 'control',
                 priority: 'normal',
                 sender_id: userId || undefined
             });
 
-            setReplyingTo(null);
-            setReplyText("");
-            // Opcional: Marcar como leído automáticamente al responder
-            if (!replyingTo.read) {
-                markAsRead(replyingTo.id);
-            }
+            setMessageText("");
         } catch (error) {
-            console.error("Error enviando respuesta:", error);
-            alert("No se pudo enviar la respuesta");
+            console.error("Error enviando mensaje:", error);
+            alert("No se pudo enviar el mensaje");
         } finally {
             setSending(false);
         }
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-4 pb-20">
-            <div className="flex items-center justify-between mb-4 px-2">
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <Bell className="text-blue-600" />
-                    Mis Mensajes
-                </h1>
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">{myMessages.filter(m => !m.read).length} nuevos</span>
-            </div>
-
-            <div className="space-y-4">
-                {myMessages.length === 0 ? (
-                    <div className="bg-white rounded-2xl p-10 text-center border border-slate-100 italic text-slate-400">
-                        No tienes mensajes nuevos en tu bandeja.
+        <div className="flex flex-col h-[calc(100vh-8rem)] bg-slate-100 -m-4 md:-m-8">
+            {/* Header */}
+            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 p-2 rounded-full text-white">
+                        <Bell size={20} />
                     </div>
-                ) : (
-                    myMessages.map((msg) => (
-                        <div key={msg.id} className={`relative bg-white border rounded-2xl p-5 shadow-sm transition-all ${!msg.read ? 'border-l-4 border-l-blue-500 shadow-md' : 'border-slate-200 opacity-90'}`}>
-
-                            {/* Priority Badge */}
-                            {msg.priority === 'high' && (
-                                <div className="absolute -top-3 -right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm animate-pulse z-10">
-                                    <AlertTriangle size={10} />
-                                    PRIORITARIO
-                                </div>
-                            )}
-
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${msg.from === 'admin' ? 'bg-slate-800' : 'bg-blue-600'}`}>
-                                        {msg.from[0].toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 text-sm">{msg.from === 'admin' ? 'Administración' : 'Central Control'}</h3>
-                                        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                                            <Clock size={10} /> {formatTimestamp(msg.timestamp)}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <h4 className={`font-bold text-base mb-1 ${msg.read ? 'text-slate-700' : 'text-slate-900'}`}>{msg.title}</h4>
-                            <p className="text-sm text-slate-600 leading-relaxed">{msg.message}</p>
-
-                            <div className="flex gap-2 mt-4">
-                                {!msg.read && (
-                                    <button
-                                        onClick={() => markAsRead(msg.id)}
-                                        className="flex-1 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <CheckCircle size={14} />
-                                        Leído
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => setReplyingTo(msg)}
-                                    className="flex-1 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
-                                >
-                                    Responder
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Reply Modal */}
-            {replyingTo && (
-                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                            <div>
-                                <h3 className="font-bold text-slate-800">Responder Mensaje</h3>
-                                <p className="text-xs text-slate-500">Para: {replyingTo.from === 'admin' ? 'Administración' : 'Central Control'}</p>
-                            </div>
-                            <button onClick={() => setReplyingTo(null)} className="p-2 text-slate-400 hover:text-slate-600">
-                                <span className="sr-only">Cerrar</span>
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-
-                        <div className="p-4 overflow-y-auto">
-                            <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100 italic">
-                                " {replyingTo.message.substring(0, 100)}{replyingTo.message.length > 100 ? '...' : ''} "
-                            </div>
-
-                            <textarea
-                                autoFocus
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                placeholder="Escribe tu respuesta aquí..."
-                                className="w-full h-32 p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-slate-800"
-                            ></textarea>
-                        </div>
-
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 sm:rounded-b-2xl flex gap-3">
-                            <button
-                                onClick={() => setReplyingTo(null)}
-                                className="flex-1 py-3 text-slate-600 font-bold text-sm bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleSendReply}
-                                disabled={!replyText.trim() || sending}
-                                className="flex-1 py-3 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
-                            >
-                                {sending ? 'Enviando...' : 'Enviar Respuesta'}
-                            </button>
-                        </div>
+                    <div>
+                        <h1 className="font-bold text-slate-800 leading-none">Central de Mensajes</h1>
+                        <span className="text-xs text-slate-500">Conexión Directa</span>
                     </div>
                 </div>
-            )}
+                <div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    EN LÍNEA
+                </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                        <Shield size={48} className="mb-4 text-slate-300" />
+                        <p>No hay mensajes en el historial.</p>
+                        <p className="text-sm">Tus comunicaciones con la central aparecerán aquí.</p>
+                    </div>
+                ) : (
+                    chatMessages.map((msg) => {
+                        const isMe = msg.sender_id === userId;
+                        const isAdmin = msg.from === 'admin';
+                        const isControl = msg.from === 'control';
+
+                        return (
+                            <div key={msg.id} className={clsx("flex flex-col max-w-[85%]", isMe ? "ml-auto items-end" : "mr-auto items-start")}>
+                                <div className={clsx(
+                                    "p-3 rounded-2xl shadow-sm text-sm relative group transition-all",
+                                    isMe
+                                        ? "bg-blue-600 text-white rounded-br-none"
+                                        : isAdmin
+                                            ? "bg-slate-800 text-white rounded-bl-none border-2 border-slate-700"
+                                            : "bg-white border border-slate-200 text-slate-800 rounded-bl-none"
+                                )}>
+                                    {/* Sender Label for Incoming */}
+                                    {!isMe && (
+                                        <div className={clsx("text-[10px] font-bold mb-1 opacity-90 flex items-center gap-1", isAdmin ? "text-purple-300" : "text-blue-600")}>
+                                            {isAdmin ? <Shield size={10} /> : <User size={10} />}
+                                            {isAdmin ? 'ADMINISTRACIÓN' : 'CENTRAL CONTROL'}
+                                        </div>
+                                    )}
+
+                                    {/* Priority Badge */}
+                                    {msg.priority === 'high' && (
+                                        <div className="flex items-center gap-1 text-[10px] font-bold mb-1 opacity-90 uppercase tracking-wider text-amber-300">
+                                            <AlertTriangle size={10} /> Prioritario
+                                        </div>
+                                    )}
+
+                                    <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+
+                                    <div className={clsx("flex items-center gap-1 text-[10px] mt-1 opacity-70", isMe ? "justify-end text-blue-100" : "text-slate-400 font-medium")}>
+                                        <Clock size={10} />
+                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {isMe && (
+                                            <span className="flex items-center gap-0.5 ml-1">
+                                                {msg.read ? <CheckCircle size={10} /> : <CheckCircle size={10} className="opacity-50" />}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex gap-2 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <input
+                    type="text"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder="Escribir a central..."
+                    className="flex-1 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+                <button
+                    type="submit"
+                    disabled={!messageText.trim() || sending}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl p-3 shadow-lg shadow-blue-600/20 transition-all aspect-square flex items-center justify-center"
+                >
+                    <Send size={24} />
+                </button>
+            </form>
         </div>
     );
 };
