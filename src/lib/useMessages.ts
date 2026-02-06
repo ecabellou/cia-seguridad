@@ -5,7 +5,7 @@ export interface Message {
     id: number;
     title: string;
     message: string;
-    from: 'control' | 'admin';
+    from: 'control' | 'admin' | 'guard';
     to: 'admin' | 'guards' | 'control' | 'all' | string;
     timestamp: number;
     read: boolean;

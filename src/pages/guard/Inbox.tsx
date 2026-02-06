@@ -4,8 +4,11 @@ import { useMessages } from '../../lib/useMessages';
 import { supabase } from '../../lib/supabase';
 
 const Inbox = () => {
-    const { messages, markAsRead } = useMessages();
+    const { messages, markAsRead, sendMessage } = useMessages();
     const [userId, setUserId] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<any | null>(null); // Message type inference issue workaround
+    const [replyText, setReplyText] = useState("");
+    const [sending, setSending] = useState(false);
 
     useEffect(() => {
         const getUser = async () => {
@@ -30,6 +33,37 @@ const Inbox = () => {
         const hours = Math.floor(minutes / 60);
         if (hours < 24) return `Hace ${hours} horas`;
         return new Date(ts).toLocaleDateString();
+    };
+
+    const handleSendReply = async () => {
+        if (!replyingTo || !replyText.trim()) return;
+
+        setSending(true);
+        try {
+            // Identificar el destino correcto basado en quién envió el mensaje original
+            // Si viene de 'admin', respondemos a 'admin'. Si viene de 'control', respondemos a 'control'.
+            const targetRole = replyingTo.from === 'admin' ? 'admin' : 'control';
+
+            await sendMessage({
+                title: `Re: ${replyingTo.title}`,
+                message: replyText,
+                from: 'guard',
+                to: targetRole,
+                priority: 'normal'
+            });
+
+            setReplyingTo(null);
+            setReplyText("");
+            // Opcional: Marcar como leído automáticamente al responder
+            if (!replyingTo.read) {
+                markAsRead(replyingTo.id);
+            }
+        } catch (error) {
+            console.error("Error enviando respuesta:", error);
+            alert("No se pudo enviar la respuesta");
+        } finally {
+            setSending(false);
+        }
     };
 
     return (
@@ -76,19 +110,75 @@ const Inbox = () => {
                             <h4 className={`font-bold text-base mb-1 ${msg.read ? 'text-slate-700' : 'text-slate-900'}`}>{msg.title}</h4>
                             <p className="text-sm text-slate-600 leading-relaxed">{msg.message}</p>
 
-                            {!msg.read && (
+                            <div className="flex gap-2 mt-4">
+                                {!msg.read && (
+                                    <button
+                                        onClick={() => markAsRead(msg.id)}
+                                        className="flex-1 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <CheckCircle size={14} />
+                                        Leído
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => markAsRead(msg.id)}
-                                    className="mt-4 w-full py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                                    onClick={() => setReplyingTo(msg)}
+                                    className="flex-1 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <CheckCircle size={14} />
-                                    Marcar como Leído
+                                    Responder
                                 </button>
-                            )}
+                            </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* Reply Modal */}
+            {replyingTo && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-slate-800">Responder Mensaje</h3>
+                                <p className="text-xs text-slate-500">Para: {replyingTo.from === 'admin' ? 'Administración' : 'Central Control'}</p>
+                            </div>
+                            <button onClick={() => setReplyingTo(null)} className="p-2 text-slate-400 hover:text-slate-600">
+                                <span className="sr-only">Cerrar</span>
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="p-4 overflow-y-auto">
+                            <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100 italic">
+                                " {replyingTo.message.substring(0, 100)}{replyingTo.message.length > 100 ? '...' : ''} "
+                            </div>
+
+                            <textarea
+                                autoFocus
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Escribe tu respuesta aquí..."
+                                className="w-full h-32 p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-slate-800"
+                            ></textarea>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 sm:rounded-b-2xl flex gap-3">
+                            <button
+                                onClick={() => setReplyingTo(null)}
+                                className="flex-1 py-3 text-slate-600 font-bold text-sm bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSendReply}
+                                disabled={!replyText.trim() || sending}
+                                className="flex-1 py-3 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                            >
+                                {sending ? 'Enviando...' : 'Enviar Respuesta'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
