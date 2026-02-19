@@ -149,7 +149,7 @@ const AccessControl = () => {
             {/* Header */}
             <div>
                 <h2 className="text-2xl font-bold text-slate-800">Control Guardia</h2>
-                <p className="text-slate-500">Registro de acceso y captura de evidencia fotográfica.</p>
+                <p className="text-slate-600">Registro de acceso y captura de evidencia fotográfica.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 relative overflow-hidden">
@@ -199,7 +199,7 @@ const AccessControl = () => {
                         <input
                             type="text"
                             placeholder="Ej: 12.345.678-9"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium uppercase"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium uppercase placeholder:text-slate-400"
                             value={formData.rut}
                             onChange={handleRutChange}
                         />
@@ -284,7 +284,7 @@ const AccessControl = () => {
                                     className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
                                 >
                                     <Camera size={24} className="text-slate-400 group-hover:text-blue-500" />
-                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO RUT</span>
+                                    <span className="text-sm font-medium text-slate-600 group-hover:text-blue-600">FOTO RUT</span>
                                 </button>
                             ) : (
                                 <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
@@ -316,7 +316,7 @@ const AccessControl = () => {
                                     className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
                                 >
                                     <ImageIcon size={24} className="text-slate-400 group-hover:text-blue-500" />
-                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO VEHÍCULO</span>
+                                    <span className="text-sm font-medium text-slate-600 group-hover:text-blue-600">FOTO VEHÍCULO</span>
                                 </button>
                             ) : (
                                 <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
@@ -348,7 +348,7 @@ const AccessControl = () => {
                                     className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
                                 >
                                     <Camera size={24} className="text-slate-400 group-hover:text-blue-500" />
-                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO CARGA</span>
+                                    <span className="text-sm font-medium text-slate-600 group-hover:text-blue-600">FOTO CARGA</span>
                                 </button>
                             ) : (
                                 <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
@@ -366,7 +366,7 @@ const AccessControl = () => {
                         </div>
 
                     </div>
-                    <p className="text-xs text-slate-400 mt-2 italic">* Puede tomar múltiples fotos si es necesario.</p>
+                    <p className="text-xs text-slate-500 mt-2 italic">* Puede tomar múltiples fotos si es necesario.</p>
                 </div>
 
                 {/* Submit */}
@@ -375,8 +375,8 @@ const AccessControl = () => {
                         onClick={handleSubmit}
                         disabled={loading}
                         className={`w-full py-4 px-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 font-bold text-lg text-white transform active:scale-[0.98] ${mode === 'entry'
-                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
-                                : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/30'
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
+                            : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/30'
                             }`}
                     >
                         {loading ? 'Guardando...' : `REGISTRAR ${mode === 'entry' ? 'ENTRADA' : 'SALIDA'}`}

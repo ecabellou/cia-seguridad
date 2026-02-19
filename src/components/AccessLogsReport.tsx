@@ -127,7 +127,7 @@ const AccessLogsReport = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Historial de Accesos</h1>
-                    <p className="text-slate-500 text-sm">Monitoreo y descarga de registros de entrada y salida.</p>
+                    <p className="text-slate-600 text-sm">Monitoreo y descarga de registros de entrada y salida.</p>
                 </div>
                 <button
                     onClick={generatePDF}
@@ -142,7 +142,7 @@ const AccessLogsReport = () => {
             {/* Filters Bar */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-end md:items-center">
                 <div className="flex-1 w-full relative">
-                    <label className="text-xs font-bold text-slate-500 mb-1 block">Buscar (RUT, Nombre, Patente...)</label>
+                    <label className="text-xs font-bold text-slate-600 mb-1 block">Buscar (RUT, Nombre, Patente...)</label>
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
                         <input
@@ -157,7 +157,7 @@ const AccessLogsReport = () => {
 
                 <div className="flex gap-4 w-full md:w-auto">
                     <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">Desde</label>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">Desde</label>
                         <input
                             type="date"
                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
@@ -166,7 +166,7 @@ const AccessLogsReport = () => {
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">Hasta</label>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">Hasta</label>
                         <input
                             type="date"
                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
@@ -175,7 +175,7 @@ const AccessLogsReport = () => {
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-slate-500 mb-1 block">Tipo</label>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">Tipo</label>
                         <select
                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full"
                             value={filters.type}
@@ -236,7 +236,7 @@ const AccessLogsReport = () => {
                                                     <div className="text-xs mt-0.5">{log.vehicle || '-'}</div>
                                                 </>
                                             ) : (
-                                                <span className="text-slate-400 italic">Peatón</span>
+                                                <span className="text-slate-500 italic">Peatón</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-slate-500 text-xs">
