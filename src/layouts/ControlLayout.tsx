@@ -60,7 +60,7 @@ const ControlLayout = () => {
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-auto bg-slate-50 relative">
+            <main className="flex-1 overflow-auto bg-slate-50 relative text-slate-900">
                 <header className="h-16 border-b border-slate-200 flex items-center justify-between px-8 bg-white sticky top-0 z-10 shadow-sm">
                     <h2 className="text-lg font-bold text-slate-800">Centro de Control</h2>
                     <div className="flex items-center gap-4">
