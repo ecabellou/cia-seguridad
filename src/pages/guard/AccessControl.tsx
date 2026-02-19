@@ -1,6 +1,5 @@
-
 import { useState, useRef } from 'react';
-import { Camera, FileText, X, Check } from 'lucide-react';
+import { Camera, FileText, X, Check, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useOutletContext } from 'react-router-dom';
 
@@ -16,9 +15,24 @@ const AccessControl = () => {
         patent: '',
         notes: ''
     });
-    const [file, setFile] = useState<File | null>(null);
+
+    // Multiple file state
+    const [files, setFiles] = useState<{
+        rut: File | null;
+        vehicle: File | null;
+        cargo: File | null;
+    }>({
+        rut: null,
+        vehicle: null,
+        cargo: null
+    });
+
     const [suggestions, setSuggestions] = useState<any[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Refs for file inputs
+    const rutInputRef = useRef<HTMLInputElement>(null);
+    const vehicleInputRef = useRef<HTMLInputElement>(null);
+    const cargoInputRef = useRef<HTMLInputElement>(null);
 
     // Search for existing users by RUT
     const handleRutChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,9 +65,37 @@ const AccessControl = () => {
         setSuggestions([]);
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'rut' | 'vehicle' | 'cargo') => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+            setFiles(prev => ({ ...prev, [type]: e.target.files![0] }));
+        }
+    };
+
+    const removeFile = (type: 'rut' | 'vehicle' | 'cargo') => {
+        setFiles(prev => ({ ...prev, [type]: null }));
+        // Reset input value to allow re-uploading same file if needed
+        if (type === 'rut' && rutInputRef.current) rutInputRef.current.value = '';
+        if (type === 'vehicle' && vehicleInputRef.current) vehicleInputRef.current.value = '';
+        if (type === 'cargo' && cargoInputRef.current) cargoInputRef.current.value = '';
+    };
+
+    const uploadFile = async (file: File) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('access-evidence')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error('Error uploading:', uploadError);
+            return null;
+        } else {
+            const { data: { publicUrl } } = supabase.storage
+                .from('access-evidence')
+                .getPublicUrl(filePath);
+            return publicUrl;
         }
     };
 
@@ -65,30 +107,12 @@ const AccessControl = () => {
 
         setLoading(true);
         try {
-            let documentUrl = null;
-
-            // Upload File if exists
-            if (file) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Math.random()}.${fileExt}`;
-                const filePath = `${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('access-evidence')
-                    .upload(filePath, file);
-
-                if (uploadError) {
-                    console.error('Error uploading:', uploadError);
-                    // Continue without file if upload fails, or alert user?
-                    // For now, let's alert but continue if critical
-                    alert('Error al subir imagen, se guardará el registro sin ella.');
-                } else {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('access-evidence')
-                        .getPublicUrl(filePath);
-                    documentUrl = publicUrl;
-                }
-            }
+            // Upload files in parallel
+            const [urlRut, urlVehicle, urlCargo] = await Promise.all([
+                files.rut ? uploadFile(files.rut) : null,
+                files.vehicle ? uploadFile(files.vehicle) : null,
+                files.cargo ? uploadFile(files.cargo) : null
+            ]);
 
             // Insert Log
             const { error } = await supabase.from('access_logs').insert({
@@ -98,7 +122,9 @@ const AccessControl = () => {
                 vehicle: formData.vehicle,
                 patent: formData.patent.toUpperCase(),
                 notes: formData.notes,
-                document_url: documentUrl,
+                url_rut: urlRut,
+                url_vehicle: urlVehicle,
+                url_cargo: urlCargo,
                 guard_id: profile?.id
             });
 
@@ -106,7 +132,8 @@ const AccessControl = () => {
 
             setSuccess(true);
             setFormData({ rut: '', name: '', vehicle: '', patent: '', notes: '' });
-            setFile(null);
+            setFiles({ rut: null, vehicle: null, cargo: null });
+
             setTimeout(() => setSuccess(false), 3000);
 
         } catch (error: any) {
@@ -121,8 +148,8 @@ const AccessControl = () => {
         <div className="max-w-4xl mx-auto space-y-6 pb-20">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-slate-800">Nuevo Registro</h2>
-                <p className="text-slate-500">Complete los datos para registrar un nuevo evento de acceso.</p>
+                <h2 className="text-2xl font-bold text-slate-800">Control Guardia</h2>
+                <p className="text-slate-500">Registro de acceso y captura de evidencia fotográfica.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 relative overflow-hidden">
@@ -204,7 +231,7 @@ const AccessControl = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Vehículo (Opcional)</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Vehículo</label>
                         <input
                             type="text"
                             placeholder="Ej: Camioneta Ford F-150"
@@ -214,7 +241,7 @@ const AccessControl = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Patente (Opcional)</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Patente</label>
                         <input
                             type="text"
                             placeholder="Ej: ABCD-12"
@@ -227,7 +254,7 @@ const AccessControl = () => {
 
                 {/* Notes */}
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Notas ({mode === 'entry' ? 'Entrada' : 'Salida'})</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Notas / Carga</label>
                     <textarea
                         rows={3}
                         placeholder="Describa carga, documentos, empresa, o cualquier observación relevante..."
@@ -237,36 +264,109 @@ const AccessControl = () => {
                     />
                 </div>
 
-                {/* File Attachment */}
+                {/* Evidence Panel */}
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Evidencia / Documento</label>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={handleFileChange}
-                    />
+                    <label className="block text-sm font-bold text-slate-700 mb-3">Evidencia Fotográfica (Opcional)</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-                    {!file ? (
-                        <div
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center justify-center gap-3 px-4 py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-all group"
-                        >
-                            <Camera size={24} className="text-slate-400 group-hover:text-slate-600" />
-                            <span className="text-slate-500 font-medium group-hover:text-slate-700">Tomar foto o adjuntar archivo...</span>
+                        {/* RUT Photo Group */}
+                        <div className="space-y-2">
+                            <input
+                                type="file"
+                                ref={rutInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, 'rut')}
+                            />
+                            {!files.rut ? (
+                                <button
+                                    onClick={() => rutInputRef.current?.click()}
+                                    className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
+                                >
+                                    <Camera size={24} className="text-slate-400 group-hover:text-blue-500" />
+                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO RUT</span>
+                                </button>
+                            ) : (
+                                <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <div className="w-8 h-8 rounded bg-blue-200 flex items-center justify-center flex-shrink-0">
+                                            <FileText size={16} className="text-blue-600" />
+                                        </div>
+                                        <span className="text-xs font-medium text-blue-900 truncate">Adjunto</span>
+                                    </div>
+                                    <button onClick={() => removeFile('rut')} className="p-1 hover:bg-blue-200 rounded-full text-blue-500 transition-colors">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <FileText className="text-blue-500" />
-                                <span className="text-sm font-medium text-blue-900 truncate max-w-[200px]">{file.name}</span>
-                            </div>
-                            <button onClick={() => setFile(null)} className="p-1 hover:bg-blue-100 rounded-full text-blue-500">
-                                <X size={18} />
-                            </button>
+
+                        {/* Vehicle Photo Group */}
+                        <div className="space-y-2">
+                            <input
+                                type="file"
+                                ref={vehicleInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, 'vehicle')}
+                            />
+                            {!files.vehicle ? (
+                                <button
+                                    onClick={() => vehicleInputRef.current?.click()}
+                                    className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
+                                >
+                                    <ImageIcon size={24} className="text-slate-400 group-hover:text-blue-500" />
+                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO VEHÍCULO</span>
+                                </button>
+                            ) : (
+                                <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <div className="w-8 h-8 rounded bg-blue-200 flex items-center justify-center flex-shrink-0">
+                                            <FileText size={16} className="text-blue-600" />
+                                        </div>
+                                        <span className="text-xs font-medium text-blue-900 truncate">Adjunto</span>
+                                    </div>
+                                    <button onClick={() => removeFile('vehicle')} className="p-1 hover:bg-blue-200 rounded-full text-blue-500 transition-colors">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    )}
+
+                        {/* Cargo Photo Group */}
+                        <div className="space-y-2">
+                            <input
+                                type="file"
+                                ref={cargoInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(e, 'cargo')}
+                            />
+                            {!files.cargo ? (
+                                <button
+                                    onClick={() => cargoInputRef.current?.click()}
+                                    className="w-full py-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 hover:border-blue-400 transition-colors flex flex-col items-center justify-center gap-2 group"
+                                >
+                                    <Camera size={24} className="text-slate-400 group-hover:text-blue-500" />
+                                    <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600">FOTO CARGA</span>
+                                </button>
+                            ) : (
+                                <div className="relative p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <div className="w-8 h-8 rounded bg-blue-200 flex items-center justify-center flex-shrink-0">
+                                            <FileText size={16} className="text-blue-600" />
+                                        </div>
+                                        <span className="text-xs font-medium text-blue-900 truncate">Adjunto</span>
+                                    </div>
+                                    <button onClick={() => removeFile('cargo')} className="p-1 hover:bg-blue-200 rounded-full text-blue-500 transition-colors">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2 italic">* Puede tomar múltiples fotos si es necesario.</p>
                 </div>
 
                 {/* Submit */}
@@ -275,8 +375,8 @@ const AccessControl = () => {
                         onClick={handleSubmit}
                         disabled={loading}
                         className={`w-full py-4 px-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 font-bold text-lg text-white transform active:scale-[0.98] ${mode === 'entry'
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
-                            : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/30'
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
+                                : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-500/30'
                             }`}
                     >
                         {loading ? 'Guardando...' : `REGISTRAR ${mode === 'entry' ? 'ENTRADA' : 'SALIDA'}`}
