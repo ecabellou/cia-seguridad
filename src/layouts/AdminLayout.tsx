@@ -14,6 +14,7 @@ const AdminLayout = () => {
     const navItems = [
         { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/admin/map', icon: Map, label: 'Mapa Global' },
+        { to: '/admin/access-logs', icon: FileText, label: 'Control Acceso' },
         { to: '/admin/users', icon: Users, label: 'Usuarios' },
         { to: '/admin/communications', icon: MessageSquare, label: 'Comunicaciones' },
         { to: '/admin/reports', icon: FileText, label: 'Reportes' },

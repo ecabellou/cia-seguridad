@@ -14,6 +14,7 @@ import UserManagement from './pages/admin/UserManagement';
 import Docs from './pages/control/Docs';
 import Inbox from './pages/guard/Inbox';
 import Login from './pages/auth/Login';
+import AccessLogsReport from './components/AccessLogsReport';
 
 
 // Placeholders for dashboards
@@ -32,6 +33,7 @@ function App() {
           <Route path="map" element={<div className="text-white p-8">Mapa Global (WIP)</div>} />
           <Route path="users" element={<UserManagement />} />
           <Route path="communications" element={<Communications />} />
+          <Route path="access-logs" element={<AccessLogsReport />} />
           <Route path="reports" element={<div className="text-white p-8">Reportes (WIP)</div>} />
         </Route>
 

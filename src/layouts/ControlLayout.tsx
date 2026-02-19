@@ -13,6 +13,7 @@ const ControlLayout = () => {
 
     const navItems = [
         { to: '/control/monitor', icon: Activity, label: 'Monitor En Vivo' },
+        { to: '/control/access-logs', icon: FileText, label: 'Historial Accesos' },
         { to: '/control/communications', icon: Radio, label: 'Comunicaciones' },
         { to: '/control/docs', icon: FileText, label: 'Documentos' },
     ];

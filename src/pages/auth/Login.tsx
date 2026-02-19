@@ -19,13 +19,32 @@ const Login = () => {
 
         // Emergency Bypass (TEMPORAL: SOLO PARA DEMO)
         if (formData.email === 'demo@cia.cl' && formData.password === 'demo123') {
-            // Simulamos un login exitoso
             localStorage.setItem('sb-xgrllphptyimbzoglzty-auth-token', JSON.stringify({
                 user: { id: 'generic-admin', email: 'demo@cia.cl', role: 'authenticated' },
                 access_token: 'fake-token',
                 refresh_token: 'fake-refresh-token'
             }));
             navigate('/admin/dashboard');
+            return;
+        }
+
+        if (formData.email === 'control@cia.cl' && formData.password === 'control123') {
+            localStorage.setItem('sb-xgrllphptyimbzoglzty-auth-token', JSON.stringify({
+                user: { id: 'generic-control', email: 'control@cia.cl', role: 'authenticated' },
+                access_token: 'fake-token',
+                refresh_token: 'fake-refresh-token'
+            }));
+            navigate('/control/monitor');
+            return;
+        }
+
+        if (formData.email === 'guardia@cia.cl' && formData.password === 'guardia123') {
+            localStorage.setItem('sb-xgrllphptyimbzoglzty-auth-token', JSON.stringify({
+                user: { id: 'generic-guard', email: 'guardia@cia.cl', role: 'authenticated' },
+                access_token: 'fake-token',
+                refresh_token: 'fake-refresh-token'
+            }));
+            navigate('/guard/home');
             return;
         }
 
