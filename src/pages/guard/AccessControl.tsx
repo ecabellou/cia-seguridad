@@ -1,6 +1,6 @@
 
 import { useState, useRef } from 'react';
-import { Camera, ScanLine, FileText, Upload, X, Check } from 'lucide-react';
+import { Camera, FileText, X, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useOutletContext } from 'react-router-dom';
 
