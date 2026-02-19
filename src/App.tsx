@@ -43,7 +43,7 @@ function App() {
           <Route path="monitor" element={<Monitor />} />
           <Route path="communications" element={<ControlCommunications />} />
           <Route path="docs" element={<Docs />} />
-
+          <Route path="access-logs" element={<AccessLogsReport />} />
         </Route>
 
         {/* Guard Routes */}
