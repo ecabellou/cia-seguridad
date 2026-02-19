@@ -147,7 +147,7 @@ const AccessLogsReport = () => {
                         <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
                         <input
                             type="text"
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900"
                             placeholder="Buscar..."
                             value={filters.search}
                             onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -160,7 +160,7 @@ const AccessLogsReport = () => {
                         <label className="text-xs font-bold text-slate-600 mb-1 block">Desde</label>
                         <input
                             type="date"
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
+                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm text-slate-900"
                             value={filters.startDate}
                             onChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
                         />
@@ -169,7 +169,7 @@ const AccessLogsReport = () => {
                         <label className="text-xs font-bold text-slate-600 mb-1 block">Hasta</label>
                         <input
                             type="date"
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
+                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm text-slate-900"
                             value={filters.endDate}
                             onChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
                         />
@@ -177,7 +177,7 @@ const AccessLogsReport = () => {
                     <div>
                         <label className="text-xs font-bold text-slate-600 mb-1 block">Tipo</label>
                         <select
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full"
+                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full text-slate-900"
                             value={filters.type}
                             onChange={e => setFilters(prev => ({ ...prev, type: e.target.value }))}
                         >

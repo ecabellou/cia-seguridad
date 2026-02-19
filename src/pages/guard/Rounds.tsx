@@ -25,8 +25,8 @@ const Rounds = () => {
         <div className="max-w-md mx-auto space-y-6 pb-20">
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h2 className="text-2xl font-bold">Ronda Nocturna</h2>
-                    <p className="text-sm text-slate-400">01:00 AM - 02:00 AM</p>
+                    <h2 className="text-2xl font-bold text-slate-900">Ronda Nocturna</h2>
+                    <p className="text-sm text-slate-600">01:00 AM - 02:00 AM</p>
                 </div>
                 <div className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20">
                     En Progreso
