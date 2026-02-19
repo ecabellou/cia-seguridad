@@ -38,7 +38,7 @@ const Rounds = () => {
                 <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/-70.6483,33.4489,14,0/600x400@2x?access_token=placeholder')] bg-cover opacity-50 grayscale group-hover:grayscale-0 transition-all" />
                 <div className="z-10 bg-slate-900/80 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2 border border-slate-700">
                     <Navigation size={16} className="text-blue-400" />
-                    <span className="text-xs font-medium">Mapa Operativo</span>
+                    <span className="text-xs font-medium text-white">Mapa Operativo</span>
                 </div>
             </div>
 
