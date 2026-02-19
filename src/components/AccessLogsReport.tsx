@@ -1,12 +1,24 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { FileText, Download, Filter, Search } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Download, Search } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+interface AccessLog {
+    id: string;
+    created_at: string;
+    type: 'entry' | 'exit';
+    rut: string;
+    name: string;
+    vehicle?: string;
+    patent?: string;
+    notes?: string;
+    guard_id?: string;
+    document_url?: string;
+}
+
 const AccessLogsReport = () => {
-    const [logs, setLogs] = useState([]);
+    const [logs, setLogs] = useState<AccessLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
         startDate: '',
@@ -36,22 +48,27 @@ const AccessLogsReport = () => {
             // Client-side filtering for search term as Supabase doesn't support complex OR across multiple columns easily without RPC
             const { data, error } = await query;
 
+            if (error) {
+                console.error("Error fetching logs:", error);
+                return;
+            }
+
             if (data) {
-                let filteredData = data;
+                let filteredData = data as AccessLog[];
                 if (filters.search) {
                     const searchLower = filters.search.toLowerCase();
-                    filteredData = data.filter(log =>
+                    filteredData = filteredData.filter(log =>
                         (log.rut && log.rut.toLowerCase().includes(searchLower)) ||
                         (log.name && log.name.toLowerCase().includes(searchLower)) ||
-                        (log.patent && log.patent.toLowerCase().includes(searchLower)) ||
-                        (log.vehicle && log.vehicle.toLowerCase().includes(searchLower)) ||
-                        (log.notes && log.notes.toLowerCase().includes(searchLower))
+                        (log.patent && log.patent?.toLowerCase().includes(searchLower)) ||
+                        (log.vehicle && log.vehicle?.toLowerCase().includes(searchLower)) ||
+                        (log.notes && log.notes?.toLowerCase().includes(searchLower))
                     );
                 }
                 setLogs(filteredData);
             }
         } catch (error) {
-            console.error("Error fetching logs", error);
+            console.error("Unexpected error fetching logs", error);
         } finally {
             setLoading(false);
         }
@@ -196,7 +213,7 @@ const AccessLogsReport = () => {
                                     <td colSpan={6} className="p-8 text-center text-slate-500 italic">No se encontraron registros de acceso.</td>
                                 </tr>
                             ) : (
-                                logs.map((log: any) => (
+                                logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="p-4 text-slate-600">
                                             <div className="font-bold text-slate-900">{new Date(log.created_at).toLocaleDateString()}</div>
